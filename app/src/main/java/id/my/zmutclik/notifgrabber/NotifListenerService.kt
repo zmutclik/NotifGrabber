@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.ComponentName
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Build
@@ -60,6 +61,14 @@ class NotifListenerService : NotificationListenerService() {
             .build()
 
         startForeground(NOTIF_ID, notification)
+    }
+
+    override fun onListenerDisconnected() {
+        super.onListenerDisconnected()
+        // Otomatis coba reconnect jika listener terputus
+        try {
+            requestRebind(ComponentName(this, NotifListenerService::class.java))
+        } catch (_: Exception) {}
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {

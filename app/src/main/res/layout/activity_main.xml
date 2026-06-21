@@ -122,10 +122,25 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Buka Pengaturan Notifikasi"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/batteryOptButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Matikan Battery Optimization"
             android:layout_marginBottom="12dp" />
 
         <TextView
             android:id="@+id/statusText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textColor="#666666"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/serviceStatusText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="13sp"

@@ -1,13 +1,24 @@
 package id.my.zmutclik.notifgrabber
 
+import android.Manifest
+import android.app.ActivityManager
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.provider.Settings
+import android.service.notification.NotificationListenerService
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
@@ -16,6 +27,18 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // ── Minta izin notifikasi di Android 13+ ──
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    1001
+                )
+            }
+        }
+
         val urlInput      = findViewById<EditText>(R.id.webhookUrlInput)
         val headersInput  = findViewById<EditText>(R.id.headersInput)
         val templateInput = findViewById<EditText>(R.id.jsonTemplateInput)
@@ -23,7 +46,9 @@ class MainActivity : AppCompatActivity() {
         val resetBtn      = findViewById<Button>(R.id.resetTemplateButton)
         val testBtn       = findViewById<Button>(R.id.testWebhookButton)
         val permBtn       = findViewById<Button>(R.id.openSettingsButton)
+        val batteryBtn    = findViewById<Button>(R.id.batteryOptButton)
         val statusText    = findViewById<TextView>(R.id.statusText)
+        val serviceStatus = findViewById<TextView>(R.id.serviceStatusText)
         val logContent    = findViewById<TextView>(R.id.logContentText)
         val logCount      = findViewById<TextView>(R.id.logCountText)
         val clearLogBtn   = findViewById<Button>(R.id.clearLogButton)
@@ -125,6 +150,19 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         }
 
+        // ── Battery Optimization ──
+        batteryBtn.setOnClickListener {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (pm.isIgnoringBatteryOptimizations(packageName)) {
+                Toast.makeText(this, "Battery optimization sudah dimatikan", Toast.LENGTH_SHORT).show()
+            } else {
+                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = Uri.parse("package:$packageName")
+                }
+                startActivity(intent)
+            }
+        }
+
         // Clear log
         clearLogBtn.setOnClickListener {
             LogManager.clear(this)
@@ -139,6 +177,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateStatus(findViewById(R.id.statusText))
+        updateServiceStatus(findViewById(R.id.serviceStatusText))
         refreshLog(findViewById(R.id.logContentText), findViewById(R.id.logCountText))
     }
 
@@ -147,8 +186,44 @@ class MainActivity : AppCompatActivity() {
             contentResolver, "enabled_notification_listeners"
         ) ?: ""
         val isEnabled = enabledListeners.contains(packageName)
-        statusText.text = if (isEnabled) "Status: akses notifikasi AKTIF"
-                          else           "Status: akses notifikasi BELUM aktif"
+        statusText.text = if (isEnabled) "✅ Status: akses notifikasi AKTIF"
+                          else           "❌ Status: akses notifikasi BELUM aktif"
+    }
+
+    private fun updateServiceStatus(statusText: TextView) {
+        val sb = StringBuilder()
+
+        // Cek notification listener service
+        val enabledListeners = Settings.Secure.getString(
+            contentResolver, "enabled_notification_listeners"
+        ) ?: ""
+        val listenerActive = enabledListeners.contains(packageName)
+        sb.appendLine(if (listenerActive) "✅ Notification Listener: AKTIF"
+                      else                "❌ Notification Listener: NONAKTIF")
+
+        // Cek foreground service running
+        val serviceRunning = isNotifServiceRunning()
+        sb.appendLine(if (serviceRunning) "✅ Foreground Service: BERJALAN"
+                      else                "❌ Foreground Service: TIDAK berjalan")
+
+        // Cek battery optimization
+        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+        val ignoringBattery = pm.isIgnoringBatteryOptimizations(packageName)
+        sb.appendLine(if (ignoringBattery) "✅ Battery Optimization: DIMATIKAN (bagus!)"
+                      else                 "⚠️ Battery Optimization: AKTIF (bisa blokir service)")
+
+        statusText.text = sb.toString().trimEnd()
+    }
+
+    private fun isNotifServiceRunning(): Boolean {
+        val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        @Suppress("DEPRECATION")
+        for (service in manager.getRunningServices(Int.MAX_VALUE)) {
+            if (NotifListenerService::class.java.name == service.service.className) {
+                return true
+            }
+        }
+        return false
     }
 
     /** Render semua log ke TextView. */
