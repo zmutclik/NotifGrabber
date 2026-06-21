@@ -40,6 +40,34 @@
             android:inputType="textUri"
             android:layout_marginBottom="16dp" />
 
+        <!-- ── Custom Headers ── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Custom Headers (opsional)"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textColor="#888888"
+            android:text="Satu header per baris, format: Key: Value"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/headersInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minLines="3"
+            android:gravity="top"
+            android:inputType="textMultiLine"
+            android:fontFamily="monospace"
+            android:textSize="12sp"
+            android:hint="Authorization: Bearer token123&#10;X-Custom-Key: nilai"
+            android:layout_marginBottom="16dp" />
+
         <!-- ── Template JSON ── -->
         <TextView
             android:layout_width="match_parent"

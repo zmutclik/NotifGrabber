@@ -1,4 +1,4 @@
-package com.example.notifgrabber
+package id.my.zmutclik.notifgrabber
 
 import okhttp3.Call
 import okhttp3.Callback
@@ -22,15 +22,22 @@ object WebhookSender {
 
     /**
      * Kirim payload ke webhook.
+     * @param headers  header HTTP tambahan (opsional), misal Authorization, X-Custom-Key, dll.
      * @param onResult callback opsional: (success: Boolean, info: String) — dipanggil di thread OkHttp.
      *                 success=true jika HTTP 2xx, false jika error jaringan atau non-2xx.
      */
-    fun send(url: String, payload: JSONObject, onResult: ((Boolean, String) -> Unit)? = null) {
+    fun send(
+        url: String,
+        payload: JSONObject,
+        headers: Map<String, String> = emptyMap(),
+        onResult: ((Boolean, String) -> Unit)? = null
+    ) {
         val body = payload.toString().toRequestBody(JSON)
-        val request = Request.Builder()
+        val builder = Request.Builder()
             .url(url)
             .post(body)
-            .build()
+        headers.forEach { (key, value) -> builder.addHeader(key, value) }
+        val request = builder.build()
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {

@@ -1,18 +1,65 @@
-package com.example.notifgrabber
+package id.my.zmutclik.notifgrabber
 
 import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Intent
 import android.content.SharedPreferences
+import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
+import androidx.core.app.NotificationCompat
 import org.json.JSONObject
 
 class NotifListenerService : NotificationListenerService() {
 
     private lateinit var prefs: SharedPreferences
 
+    companion object {
+        private const val CHANNEL_ID   = "notifgrabber_fg"
+        private const val NOTIF_ID     = 1001
+    }
+
     override fun onCreate() {
         super.onCreate()
         prefs = getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE)
+        startForegroundService()
+    }
+
+    private fun startForegroundService() {
+        // Buat notification channel (wajib Android 8+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "Notif Grabber Aktif",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Service pemantau notifikasi"
+                setShowBadge(false)
+            }
+            getSystemService(NotificationManager::class.java)
+                .createNotificationChannel(channel)
+        }
+
+        // Intent untuk buka MainActivity saat notifikasi diklik
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0,
+            Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Notif Grabber")
+            .setContentText("Memantau notifikasi berjalan...")
+            .setSmallIcon(R.drawable.ic_launcher)
+            .setContentIntent(pendingIntent)
+            .setOngoing(true)          // tidak bisa di-swipe oleh user
+            .setSilent(true)           // tidak bunyi / getar
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+
+        startForeground(NOTIF_ID, notification)
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -45,9 +92,11 @@ class NotifListenerService : NotificationListenerService() {
             packageManager.getApplicationLabel(appInfo).toString()
         } catch (e: Exception) { sbn.packageName }
 
-        // Ambil template dari prefs, fallback ke default
+        // Ambil template & headers dari prefs
         val template = prefs.getString(MainActivity.KEY_JSON_TEMPLATE, MainActivity.DEFAULT_TEMPLATE)
             ?: MainActivity.DEFAULT_TEMPLATE
+        val rawHeaders = prefs.getString(MainActivity.KEY_HEADERS, "") ?: ""
+        val headers = MainActivity.parseHeaders(rawHeaders)
 
         val bodyText = if (bigText.isNotBlank()) bigText else text
 
@@ -79,7 +128,7 @@ class NotifListenerService : NotificationListenerService() {
             }
         }
 
-        WebhookSender.send(webhookUrl, payload)
+        WebhookSender.send(webhookUrl, payload, headers)
     }
 
     /** Escape karakter khusus JSON agar nilai string tidak merusak struktur JSON. */

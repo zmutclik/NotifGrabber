@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace 'com.example.notifgrabber'
+    namespace 'id.my.zmutclik.notifgrabber'
     compileSdk 35
 
     defaultConfig {
-        applicationId "com.example.notifgrabber"
+        applicationId "id.my.zmutclik.notifgrabber"
         minSdk 24
         targetSdk 35
         versionCode 1

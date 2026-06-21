@@ -1,4 +1,4 @@
-package com.example.notifgrabber
+package id.my.zmutclik.notifgrabber
 
 import android.content.Intent
 import android.os.Bundle
@@ -17,6 +17,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         val urlInput      = findViewById<EditText>(R.id.webhookUrlInput)
+        val headersInput  = findViewById<EditText>(R.id.headersInput)
         val templateInput = findViewById<EditText>(R.id.jsonTemplateInput)
         val saveBtn       = findViewById<Button>(R.id.saveButton)
         val resetBtn      = findViewById<Button>(R.id.resetTemplateButton)
@@ -26,21 +27,28 @@ class MainActivity : AppCompatActivity() {
 
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         urlInput.setText(prefs.getString(KEY_WEBHOOK_URL, ""))
+        headersInput.setText(prefs.getString(KEY_HEADERS, ""))
         templateInput.setText(prefs.getString(KEY_JSON_TEMPLATE, DEFAULT_TEMPLATE))
 
         updateStatus(statusText)
 
         saveBtn.setOnClickListener {
             val url      = urlInput.text.toString().trim()
+            val headers  = headersInput.text.toString().trim()
             val template = templateInput.text.toString().trim()
 
             if (!isValidJsonTemplate(template)) {
                 Toast.makeText(this, "Template JSON tidak valid!", Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
+            if (!isValidHeaders(headers)) {
+                Toast.makeText(this, "Format header tidak valid! Gunakan: Key: Value", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
 
             prefs.edit()
                 .putString(KEY_WEBHOOK_URL, url)
+                .putString(KEY_HEADERS, headers)
                 .putString(KEY_JSON_TEMPLATE, template)
                 .apply()
             Toast.makeText(this, "Pengaturan tersimpan", Toast.LENGTH_SHORT).show()
@@ -84,8 +92,11 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
+            val headers = headersInput.text.toString().trim()
+            val parsedHeaders = MainActivity.parseHeaders(headers)
+
             testBtn.isEnabled = false
-            WebhookSender.send(url, payload) { success, code ->
+            WebhookSender.send(url, payload, parsedHeaders) { success, code ->
                 runOnUiThread {
                     testBtn.isEnabled = true
                     if (success) {
@@ -128,10 +139,37 @@ class MainActivity : AppCompatActivity() {
         true
     } catch (_: Exception) { false }
 
+    /** Validasi semua baris header berformat "Key: Value" (baris kosong dilewati). */
+    private fun isValidHeaders(raw: String): Boolean {
+        if (raw.isBlank()) return true
+        return raw.lines().filter { it.isNotBlank() }.all { line ->
+            val idx = line.indexOf(':')
+            idx > 0 && line.substring(0, idx).isNotBlank()
+        }
+    }
+
+
+
     companion object {
         const val PREFS_NAME        = "notifgrabber_prefs"
         const val KEY_WEBHOOK_URL   = "webhook_url"
+        const val KEY_HEADERS       = "webhook_headers"
         const val KEY_JSON_TEMPLATE = "json_template"
+
+        /** Parse teks header menjadi Map<String, String>. */
+        fun parseHeaders(raw: String): Map<String, String> {
+            if (raw.isBlank()) return emptyMap()
+            return raw.lines()
+                .filter { it.isNotBlank() }
+                .mapNotNull { line ->
+                    val idx = line.indexOf(':')
+                    if (idx > 0) {
+                        val key   = line.substring(0, idx).trim()
+                        val value = line.substring(idx + 1).trim()
+                        if (key.isNotEmpty()) key to value else null
+                    } else null
+                }.toMap()
+        }
 
         val DEFAULT_TEMPLATE = """
             {

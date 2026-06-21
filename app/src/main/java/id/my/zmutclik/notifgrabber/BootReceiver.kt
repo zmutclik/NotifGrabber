@@ -1,4 +1,4 @@
-package com.example.notifgrabber
+package id.my.zmutclik.notifgrabber
 
 import android.content.BroadcastReceiver
 import android.content.ComponentName
