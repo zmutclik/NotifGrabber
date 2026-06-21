@@ -84,12 +84,10 @@ class NotifListenerService : NotificationListenerService() {
         forward(sbn, "posted")
     }
 
-    override fun onNotificationRemoved(sbn: StatusBarNotification) {
-        super.onNotificationRemoved(sbn)
-        // Optional: also report when a notification disappears.
-        // Comment out if you only care about new notifications.
-        forward(sbn, "removed")
-    }
+    // override fun onNotificationRemoved(sbn: StatusBarNotification) {
+    //     super.onNotificationRemoved(sbn)
+    //     forward(sbn, "removed")
+    // }
 
     private fun forward(sbn: StatusBarNotification, event: String) {
         val webhookUrl = prefs.getString(MainActivity.KEY_WEBHOOK_URL, null)
@@ -97,6 +95,9 @@ class NotifListenerService : NotificationListenerService() {
 
         // Skip this app's own notifications, if it ever posts any.
         if (sbn.packageName == packageName) return
+
+        // Filter berdasarkan whitelist/blacklist
+        if (!MainActivity.shouldForward(prefs, sbn.packageName)) return
 
         val extras  = sbn.notification.extras
         val title   = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()    ?: ""

@@ -26,6 +26,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".AppFilterActivity"
+            android:exported="false"
+            android:label="Filter Aplikasi" />
+
         <!-- Notification listener service. Requires the user to manually
              enable "Notification access" for this app in system Settings;
              Android does not allow this permission to be granted silently. -->

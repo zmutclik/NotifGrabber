@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Filter Aplikasi"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Pilih mode filter dan aplikasi yang ingin dipantau."
+        android:textSize="13sp"
+        android:textColor="#666666"
+        android:layout_marginBottom="16dp" />
+
+    <!-- ── Mode Filter ── -->
+    <RadioGroup
+        android:id="@+id/filterModeGroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="12dp">
+
+        <RadioButton
+            android:id="@+id/radioAll"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Semua Aplikasi (tanpa filter)"
+            android:checked="true"
+            android:layout_marginBottom="4dp" />
+
+        <RadioButton
+            android:id="@+id/radioWhitelist"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Whitelist — hanya aplikasi terpilih"
+            android:layout_marginBottom="4dp" />
+
+        <RadioButton
+            android:id="@+id/radioBlacklist"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Blacklist — skip aplikasi terpilih" />
+
+    </RadioGroup>
+
+    <!-- ── Search Bar ── -->
+    <EditText
+        android:id="@+id/searchInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Cari aplikasi..."
+        android:inputType="text"
+        android:drawableStart="@android:drawable/ic_menu_search"
+        android:drawablePadding="8dp"
+        android:layout_marginBottom="8dp" />
+
+    <!-- ── Pilih Semua / Batal Semua ── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:layout_marginBottom="4dp">
+
+        <Button
+            android:id="@+id/btnSelectAll"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="Pilih Semua"
+            android:textSize="12sp"
+            android:textAllCaps="false"
+            style="?android:attr/buttonBarButtonStyle" />
+
+        <Button
+            android:id="@+id/btnDeselectAll"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="Batal Semua"
+            android:textSize="12sp"
+            android:textAllCaps="false"
+            style="?android:attr/buttonBarButtonStyle" />
+
+    </LinearLayout>
+
+    <!-- ── Daftar Aplikasi ── -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/appRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginBottom="12dp" />
+
+    <!-- ── Info jumlah terpilih ── -->
+    <TextView
+        android:id="@+id/selectedCountText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="13sp"
+        android:textColor="#666666"
+        android:text="0 aplikasi terpilih"
+        android:layout_marginBottom="12dp" />
+
+    <!-- ── Tombol Simpan ── -->
+    <Button
+        android:id="@+id/btnSaveFilter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Simpan Filter" />
+
+</LinearLayout>

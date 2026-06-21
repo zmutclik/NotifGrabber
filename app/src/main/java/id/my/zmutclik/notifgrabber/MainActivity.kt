@@ -1,6 +1,8 @@
 package id.my.zmutclik.notifgrabber
 
 import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -17,6 +19,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import org.json.JSONObject
 
@@ -46,6 +49,8 @@ class MainActivity : AppCompatActivity() {
         val testBtn       = findViewById<Button>(R.id.testWebhookButton)
         val permBtn       = findViewById<Button>(R.id.openSettingsButton)
         val batteryBtn    = findViewById<Button>(R.id.batteryOptButton)
+        val filterBtn     = findViewById<Button>(R.id.appFilterButton)
+        val filterStatus  = findViewById<TextView>(R.id.filterStatusText)
         val statusText    = findViewById<TextView>(R.id.statusText)
         val serviceStatus = findViewById<TextView>(R.id.serviceStatusText)
         val logContent    = findViewById<TextView>(R.id.logContentText)
@@ -100,12 +105,15 @@ class MainActivity : AppCompatActivity() {
             }
 
             val now = System.currentTimeMillis()
+            val testTitle = "Test Notifikasi"
+            val testText  = "Ini adalah pesan uji coba dari Notif Grabber"
+
             val rendered = template
                 .replace("{{event}}",       "test")
                 .replace("{{package}}",     packageName)
                 .replace("{{app_name}}",    "Notif Grabber")
-                .replace("{{title}}",       "Test Notifikasi")
-                .replace("{{text}}",        "Ini adalah pesan uji coba dari Notif Grabber")
+                .replace("{{title}}",       testTitle)
+                .replace("{{text}}",        testText)
                 .replace("{{sub_text}}",    "")
                 .replace("\"{{post_time}}\"",   now.toString())
                 .replace("\"{{device_time}}\"", now.toString())
@@ -123,10 +131,14 @@ class MainActivity : AppCompatActivity() {
             val parsedHeaders = MainActivity.parseHeaders(headers)
 
             testBtn.isEnabled = false
+
+            // ── Tampilkan notifikasi lokal sebagai test ──
+            showTestNotification(testTitle, testText)
+
             // Tambah log test
             LogManager.add(this, LogManager.LogEntry(
                 time = LogManager.nowString(), event = "test",
-                appName = "Notif Grabber", title = "Test Notifikasi",
+                appName = "Notif Grabber", title = testTitle,
                 success = null, httpInfo = "mengirim…"
             ))
             refreshLog(logContent, logCount)
@@ -162,6 +174,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // ── Filter Aplikasi ──
+        filterBtn.setOnClickListener {
+            startActivity(Intent(this, AppFilterActivity::class.java))
+        }
+        updateFilterStatus(filterStatus)
+
         // Clear log
         clearLogBtn.setOnClickListener {
             LogManager.clear(this)
@@ -177,6 +195,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         updateStatus(findViewById(R.id.statusText))
         updateServiceStatus(findViewById(R.id.serviceStatusText))
+        updateFilterStatus(findViewById(R.id.filterStatusText))
         refreshLog(findViewById(R.id.logContentText), findViewById(R.id.logCountText))
     }
 
@@ -218,6 +237,17 @@ class MainActivity : AppCompatActivity() {
         // Use the static flag from NotifListenerService instead of
         // the deprecated getRunningServices() which doesn't work on newer Android versions
         return NotifListenerService.isRunning
+    }
+
+    private fun updateFilterStatus(statusText: TextView) {
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        val mode = prefs.getString(KEY_FILTER_MODE, "all") ?: "all"
+        val apps = prefs.getStringSet(KEY_FILTER_APPS, emptySet()) ?: emptySet()
+        statusText.text = when (mode) {
+            "whitelist" -> "Mode: Whitelist (${apps.size} aplikasi)"
+            "blacklist" -> "Mode: Blacklist (${apps.size} aplikasi)"
+            else        -> "Mode: Semua Aplikasi"
+        }
     }
 
     /** Render semua log ke TextView. */
@@ -269,6 +299,35 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Tampilkan notifikasi lokal sebagai test — user bisa melihat & listener juga bisa menangkap. */
+    private fun showTestNotification(title: String, text: String) {
+        val channelId = "notifgrabber_test"
+        val notifId   = (System.currentTimeMillis() % Int.MAX_VALUE).toInt()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "Test Notifikasi",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Channel untuk notifikasi test dari Notif Grabber"
+            }
+            getSystemService(NotificationManager::class.java)
+                .createNotificationChannel(channel)
+        }
+
+        val notification = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(R.drawable.ic_launcher)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .build()
+
+        getSystemService(NotificationManager::class.java)
+            .notify(notifId, notification)
+    }
+
 
 
     companion object {
@@ -276,6 +335,8 @@ class MainActivity : AppCompatActivity() {
         const val KEY_WEBHOOK_URL   = "webhook_url"
         const val KEY_HEADERS       = "webhook_headers"
         const val KEY_JSON_TEMPLATE = "json_template"
+        const val KEY_FILTER_MODE   = "filter_mode"      // "all", "whitelist", "blacklist"
+        const val KEY_FILTER_APPS   = "filter_apps"      // Set<String> package names
 
         /** Parse teks header menjadi Map<String, String>. */
         fun parseHeaders(raw: String): Map<String, String> {
@@ -304,5 +365,20 @@ class MainActivity : AppCompatActivity() {
               "device_time": {{device_time}}
             }
         """.trimIndent()
+
+        /**
+         * Cek apakah package harus diteruskan berdasarkan filter.
+         * @return true jika notifikasi boleh diteruskan.
+         */
+        fun shouldForward(prefs: SharedPreferences, pkgName: String): Boolean {
+            val mode = prefs.getString(KEY_FILTER_MODE, "all") ?: "all"
+            if (mode == "all") return true
+            val apps = prefs.getStringSet(KEY_FILTER_APPS, emptySet()) ?: emptySet()
+            return when (mode) {
+                "whitelist" -> apps.contains(pkgName)   // hanya terpilih yang lolos
+                "blacklist" -> !apps.contains(pkgName)  // terpilih di-skip
+                else        -> true
+            }
+        }
     }
 }
