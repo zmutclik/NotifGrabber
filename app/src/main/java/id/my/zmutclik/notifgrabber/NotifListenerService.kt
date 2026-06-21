@@ -20,12 +20,20 @@ class NotifListenerService : NotificationListenerService() {
     companion object {
         private const val CHANNEL_ID   = "notifgrabber_fg"
         private const val NOTIF_ID     = 1001
+        @Volatile var isRunning = false
+            private set
     }
 
     override fun onCreate() {
         super.onCreate()
+        isRunning = true
         prefs = getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE)
         startForegroundService()
+    }
+
+    override fun onDestroy() {
+        isRunning = false
+        super.onDestroy()
     }
 
     private fun startForegroundService() {

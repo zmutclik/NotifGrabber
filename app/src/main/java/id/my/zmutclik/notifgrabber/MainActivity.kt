@@ -1,7 +1,6 @@
 package id.my.zmutclik.notifgrabber
 
 import android.Manifest
-import android.app.ActivityManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -216,14 +215,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun isNotifServiceRunning(): Boolean {
-        val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        @Suppress("DEPRECATION")
-        for (service in manager.getRunningServices(Int.MAX_VALUE)) {
-            if (NotifListenerService::class.java.name == service.service.className) {
-                return true
-            }
-        }
-        return false
+        // Use the static flag from NotifListenerService instead of
+        // the deprecated getRunningServices() which doesn't work on newer Android versions
+        return NotifListenerService.isRunning
     }
 
     /** Render semua log ke TextView. */
