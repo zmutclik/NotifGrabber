@@ -128,7 +128,20 @@ class NotifListenerService : NotificationListenerService() {
             }
         }
 
-        WebhookSender.send(webhookUrl, payload, headers)
+        // Catat log sebelum kirim
+        val logEntry = LogManager.LogEntry(
+            time     = LogManager.nowString(),
+            event    = event,
+            appName  = appName,
+            title    = title,
+            success  = null,
+            httpInfo = "mengirim…"
+        )
+        LogManager.add(this, logEntry)
+
+        WebhookSender.send(webhookUrl, payload, headers) { success, info ->
+            LogManager.updateLatest(this, success, info)
+        }
     }
 
     /** Escape karakter khusus JSON agar nilai string tidak merusak struktur JSON. */

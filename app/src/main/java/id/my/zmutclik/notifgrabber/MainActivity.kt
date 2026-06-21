@@ -24,6 +24,9 @@ class MainActivity : AppCompatActivity() {
         val testBtn       = findViewById<Button>(R.id.testWebhookButton)
         val permBtn       = findViewById<Button>(R.id.openSettingsButton)
         val statusText    = findViewById<TextView>(R.id.statusText)
+        val logContent    = findViewById<TextView>(R.id.logContentText)
+        val logCount      = findViewById<TextView>(R.id.logCountText)
+        val clearLogBtn   = findViewById<Button>(R.id.clearLogButton)
 
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         urlInput.setText(prefs.getString(KEY_WEBHOOK_URL, ""))
@@ -96,9 +99,19 @@ class MainActivity : AppCompatActivity() {
             val parsedHeaders = MainActivity.parseHeaders(headers)
 
             testBtn.isEnabled = false
+            // Tambah log test
+            LogManager.add(this, LogManager.LogEntry(
+                time = LogManager.nowString(), event = "test",
+                appName = "Notif Grabber", title = "Test Notifikasi",
+                success = null, httpInfo = "mengirim…"
+            ))
+            refreshLog(logContent, logCount)
+
             WebhookSender.send(url, payload, parsedHeaders) { success, code ->
+                LogManager.updateLatest(this, success, code)
                 runOnUiThread {
                     testBtn.isEnabled = true
+                    refreshLog(logContent, logCount)
                     if (success) {
                         Toast.makeText(this, "✓ Test berhasil dikirim (HTTP $code)", Toast.LENGTH_SHORT).show()
                     } else {
@@ -111,11 +124,22 @@ class MainActivity : AppCompatActivity() {
         permBtn.setOnClickListener {
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         }
+
+        // Clear log
+        clearLogBtn.setOnClickListener {
+            LogManager.clear(this)
+            refreshLog(logContent, logCount)
+            Toast.makeText(this, "Log dihapus", Toast.LENGTH_SHORT).show()
+        }
+
+        // Tampilkan log awal
+        refreshLog(logContent, logCount)
     }
 
     override fun onResume() {
         super.onResume()
         updateStatus(findViewById(R.id.statusText))
+        refreshLog(findViewById(R.id.logContentText), findViewById(R.id.logCountText))
     }
 
     private fun updateStatus(statusText: TextView) {
@@ -125,6 +149,34 @@ class MainActivity : AppCompatActivity() {
         val isEnabled = enabledListeners.contains(packageName)
         statusText.text = if (isEnabled) "Status: akses notifikasi AKTIF"
                           else           "Status: akses notifikasi BELUM aktif"
+    }
+
+    /** Render semua log ke TextView. */
+    private fun refreshLog(contentView: TextView, countView: TextView) {
+        val entries = LogManager.getAll(this)
+        countView.text = "${entries.size} entri"
+        if (entries.isEmpty()) {
+            contentView.text = "(belum ada log)"
+            return
+        }
+        val sb = StringBuilder()
+        entries.forEach { e ->
+            val icon = when {
+                e.success == null -> "⏳"
+                e.success == true -> "✅"
+                else              -> "❌"
+            }
+            val ev = when (e.event) {
+                "posted"  -> "📥"
+                "removed" -> "📤"
+                else      -> "🧪"
+            }
+            sb.appendLine("${e.time}  $icon $ev ${e.event.uppercase()}")
+            sb.appendLine("   📱 ${e.appName}  📝 ${e.title}")
+            sb.appendLine("   → ${e.httpInfo}")
+            sb.appendLine()
+        }
+        contentView.text = sb.toString().trimEnd()
     }
 
     /**

@@ -129,7 +129,66 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="13sp"
-            android:textColor="#666666" />
+            android:textColor="#666666"
+            android:layout_marginBottom="24dp" />
+
+        <!-- ── Separator ── -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#DDDDDD"
+            android:layout_marginBottom="16dp" />
+
+        <!-- ── Log Section ── -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Log Notifikasi"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/clearLogButton"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="Hapus Log"
+                android:textSize="12sp"
+                android:textAllCaps="false"
+                style="?android:attr/buttonBarButtonStyle" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/logCountText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textColor="#888888"
+            android:text="0 entri"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/logContentText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="120dp"
+            android:maxHeight="360dp"
+            android:gravity="top"
+            android:background="#F5F5F5"
+            android:padding="12dp"
+            android:fontFamily="monospace"
+            android:textSize="11sp"
+            android:textColor="#333333"
+            android:lineSpacingExtra="4dp"
+            android:textIsSelectable="true"
+            android:text="(belum ada log)" />
 
     </LinearLayout>
 </ScrollView>
