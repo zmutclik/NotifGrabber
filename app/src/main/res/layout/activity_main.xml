@@ -83,6 +83,13 @@
             android:layout_marginBottom="12dp" />
 
         <Button
+            android:id="@+id/testWebhookButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Kirim Test Notifikasi"
+            android:layout_marginBottom="12dp" />
+
+        <Button
             android:id="@+id/openSettingsButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

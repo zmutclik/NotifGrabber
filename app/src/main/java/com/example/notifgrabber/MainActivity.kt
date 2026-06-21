@@ -20,6 +20,7 @@ class MainActivity : AppCompatActivity() {
         val templateInput = findViewById<EditText>(R.id.jsonTemplateInput)
         val saveBtn       = findViewById<Button>(R.id.saveButton)
         val resetBtn      = findViewById<Button>(R.id.resetTemplateButton)
+        val testBtn       = findViewById<Button>(R.id.testWebhookButton)
         val permBtn       = findViewById<Button>(R.id.openSettingsButton)
         val statusText    = findViewById<TextView>(R.id.statusText)
 
@@ -48,6 +49,52 @@ class MainActivity : AppCompatActivity() {
         resetBtn.setOnClickListener {
             templateInput.setText(DEFAULT_TEMPLATE)
             Toast.makeText(this, "Template direset ke default", Toast.LENGTH_SHORT).show()
+        }
+
+        testBtn.setOnClickListener {
+            val url      = urlInput.text.toString().trim()
+            val template = templateInput.text.toString().trim()
+
+            if (url.isBlank()) {
+                Toast.makeText(this, "Isi URL webhook terlebih dahulu", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (!isValidJsonTemplate(template)) {
+                Toast.makeText(this, "Template JSON tidak valid!", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+
+            val now = System.currentTimeMillis()
+            val rendered = template
+                .replace("{{event}}",       "test")
+                .replace("{{package}}",     packageName)
+                .replace("{{app_name}}",    "Notif Grabber")
+                .replace("{{title}}",       "Test Notifikasi")
+                .replace("{{text}}",        "Ini adalah pesan uji coba dari Notif Grabber")
+                .replace("{{sub_text}}",    "")
+                .replace("\"{{post_time}}\"",   now.toString())
+                .replace("\"{{device_time}}\"", now.toString())
+                .replace("{{post_time}}",   now.toString())
+                .replace("{{device_time}}", now.toString())
+
+            val payload = try {
+                JSONObject(rendered)
+            } catch (e: Exception) {
+                Toast.makeText(this, "Gagal render template: ${e.message}", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+
+            testBtn.isEnabled = false
+            WebhookSender.send(url, payload) { success, code ->
+                runOnUiThread {
+                    testBtn.isEnabled = true
+                    if (success) {
+                        Toast.makeText(this, "✓ Test berhasil dikirim (HTTP $code)", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this, "✗ Gagal: $code", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
         }
 
         permBtn.setOnClickListener {
